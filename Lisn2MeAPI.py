@@ -104,7 +104,7 @@ def get_users():
     return get_list_of(users_collection)
 
 
-# Sample users: 670391f6a9a6f7b26e32c946, 67039232a9a6f7b26e32c947
+# Sample users: 1001, 1002, 1003
 @app.route("/get-user/<desired_id>")
 def get_user_by_id(desired_id):
     users_collection = database["users"]
@@ -253,29 +253,6 @@ def update_conversation(user_id):
         print(f"Error: {error}")
 
         return bad_response(error)
-
-
-# Samples of GET and POST mocks
-@app.route("/get-sample-user/<user_id>")
-def get_sample_user(user_id):
-    user_data = {
-        "user_id": user_id,
-        "name": "John Doe",
-        "email": "john.doe@gmail.com"
-    }
-
-    extra = request.args.get("extra")
-    if extra:
-        user_data["extra"] = extra
-
-    return jsonify(user_data), 200
-
-
-@app.route("/create-sample-user", methods=["POST"])
-def create_sample_user():
-    data = request.get_json()
-
-    return jsonify(data), 201
 
 
 if __name__ == "__main__":
