@@ -80,6 +80,14 @@ def conflict(error):
     return jsonify(response_body), 409
 
 
+def not_found(error):
+    response_body = {
+        "response": "Not Found",
+        "error": error
+    }
+    return jsonify(response_body), 404
+
+
 def other_errors(error):
     response_body = {
         "response": "Internal Server Error",
@@ -285,6 +293,34 @@ def update_conversation(user_id):
         print(f"Error: {error}")
 
         return bad_response(error)
+
+
+@app.route("/delete-conversation", methods=["DELETE"])
+def delete_conversation():
+    try:
+        # Get user_id from query parameters
+        user_id = request.args.get("user_id")
+
+        # Validate that user_id is provided
+        if not user_id:
+            return bad_response("Missing 'user_id' in request parameters")
+
+        # Access the conversations collection
+        conversations_collection = database["conversations"]
+
+        # Define the query to locate the conversation by user_id
+        my_query = {"_id": user_id}
+        result = conversations_collection.delete_one(my_query)
+
+        # Check if a document was deleted
+        if result.deleted_count == 0:
+            return not_found("No conversation found for the provided user_id")
+
+        return success(200)
+
+    except Exception as exc:
+        # Return a generic error message with status code 500
+        return other_errors(exc)
 
 
 if __name__ == "__main__":
