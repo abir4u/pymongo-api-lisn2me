@@ -80,6 +80,14 @@ def conflict(error):
     return jsonify(response_body), 409
 
 
+def other_errors(error):
+    response_body = {
+        "response": "Internal Server Error",
+        "error": error
+    }
+    return jsonify(response_body), 500
+
+
 def success(code):
     response_body = {
         "response": "success"
@@ -101,7 +109,13 @@ def get_last_id(collection):
 def get_users():
     users_collection = database["users"]
 
-    return get_list_of(users_collection)
+    # Retrieve users and format as a dictionary
+    users = users_collection.find()
+
+    # Format the data to be a flat dictionary with user IDs as keys and names as values
+    users_dict = {user["_id"]: {"email": user["email"], "name": user["name"]} for user in users}
+
+    return users_dict, 200
 
 
 # Sample users: 1001, 1002, 1003
@@ -126,31 +140,49 @@ def get_conversation_by_id(desired_id):
     return get_item(conversations_collection, desired_id)
 
 
-@app.route("/create-conversation/<user_id>", methods=["POST"])
-def create_conversation(user_id):
+# Add a conversation document for a new user that was just created
+@app.route("/new-user-conversation", methods=["POST"])
+def create_conversation_post():
     try:
+        # Parse JSON data from the request body
+        data = request.get_json()
+
+        print(data)
+
+        # Validate that user_id is provided in the JSON data
+        if not data or 'user_id' not in data:
+            return bad_response("Missing 'user_id' in request body")
+
+        user_id = data['user_id']
+
+        # Access the conversations collection
         conversations_collection = database["conversations"]
 
+        # Check if a record with the given user_id already exists
         my_query = {"_id": user_id}
         item_count = conversations_collection.count_documents(my_query)
 
         if item_count != 0:
-            return conflict("Record exists")
+            return conflict("Record exists.")
 
-        # Creating a dictionary with student details
-        data = {
+        # Prepare the data for insertion
+        conversation_data = {
             '_id': user_id,
             'textrecords': []
         }
 
-        conversations_collection.insert_one(data)
+        # Insert the new conversation document
+        conversations_collection.insert_one(conversation_data)
 
         return success(201)
 
-    except Exception as error:
-        # Handling exceptions and printing an error message if data insertion fails
-        print(f"Error: {error}")
-        return bad_response(error)
+    except TypeError:
+        # Return a generic error message with status code 500
+        return bad_response("Object of type UnsupportedMediaType is not JSON serializable")
+
+    except Exception as exc:
+        # Return a generic error message with status code 500
+        return other_errors(exc)
 
 
 @app.route("/create-user", methods=["POST"])
